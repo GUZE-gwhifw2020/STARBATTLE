@@ -52,7 +52,7 @@ classdef StarBattle
             
         end
         
-        function setCross(obj,index0,index1)
+        function obj = setCross(obj,index0,index1)
             %SETCROSS 设置叉属性
             %   输入参数：下标向量 - 横纵2*N向量或空向量
             narginchk(2,3)
@@ -88,7 +88,7 @@ classdef StarBattle
             end
         end
         
-        function setStar(obj,index0,index1)
+        function obj = setStar(obj,index0,index1)
             %SETSTAR 设置星属性
             %   输入参数：下标向量 - 横纵2*N向量或空向量
             narginchk(2,3)
@@ -115,8 +115,7 @@ classdef StarBattle
                     
                     % 周围清空为Cross
                     [indexASurd,~] = obj.surdUnit(indexS(:,ii),'S');
-                    obj.setCross(indexASurd);
-                    
+                    obj = obj.setCross(indexASurd);
                 elseif(obj.resultM(indexA(ii)) == obj.uTypeCross)
                     error('Error:检测到叉位置为星。');
                 end
@@ -185,7 +184,7 @@ classdef StarBattle
                 end
                 for ii = 1:obj.gSize
                     % 对每一个行进行屏蔽点寻找
-                    obj.shadeSeek(obj.lTypeBlock, ii);
+                    obj.shadeSeek(obj.lTypeRow, ii);
                 end
                 for ii = 1:obj.gSize
                     % 对每一个列进行屏蔽点寻找
@@ -195,7 +194,7 @@ classdef StarBattle
                 % 寻找每一块/列/行中残余为1的单元
                 id2 = cellfun(@length, obj.indexCell) == 1;
                 indexAStar = cell2mat(obj.indexCell(id2));
-                obj.setStar();
+                obj = obj.setStar(indexAStar);
                 
                 
             end
