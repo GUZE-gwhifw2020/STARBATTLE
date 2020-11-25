@@ -21,7 +21,7 @@ classdef StarBattle
         
     end
     
-    properties
+    properties(Access = public)
         gSize           % 行列数/单元数
         tokenMatrix     % 题面矩阵
         
@@ -52,13 +52,20 @@ classdef StarBattle
             
         end
         
-        function setCross(obj,indexS)
+        function setCross(obj,index0,index1)
             %SETCROSS 设置叉属性
             %   输入参数：下标向量 - 横纵2*N向量或空向量
-            assert(size(indexS,1) == 2 || isempty(indexS));
-            
-            % 一维下标向量
-            indexA = sub2ind([obj.gSize obj.gSize],indexS(1,:),indexS(:,2));
+            narginchk(2,3)
+            if(nargin == 2)
+                indexA = index0;
+                % 坐标下标向量
+                indexS = zeros(2,length(index0));
+                [indexS(1,:),indexS(2,:)] = ind2sub([obj.gSize obj.gSize],index0);
+            elseif(nargin == 3)
+                indexS = cat(1,index0,index1);
+                % 一维下标向量
+                indexA = sub2ind([obj.gSize obj.gSize],indexS(1,:),indexS(2,:));
+            end
             
             for ii = 1:size(indexS,2)
                 if(obj.resultM(indexA(ii)) == obj.uTypeUnN)
@@ -72,28 +79,34 @@ classdef StarBattle
                     obj.indexCell{obj.lTypeColumn,indexS(2,ii)}( ...
                         obj.indexCell{obj.lTypeColumn,indexS(2,ii)} == indexA(ii)) = [];
                     
-                    obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(index(ii))}( ...
-                        obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(index(ii))} == indexA(ii)) = [];
+                    obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))}( ...
+                        obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))} == indexA(ii)) = [];
                     
                 elseif(obj.resultM(indexA(ii)) == obj.uTypeStar)
                     error('Error:检测到星位置为叉。');
                 end
-                
             end
         end
         
-        function setStar(obj,indexS)
+        function setStar(obj,index0,index1)
             %SETSTAR 设置星属性
             %   输入参数：下标向量 - 横纵2*N向量或空向量
-            assert(size(indexS,1) == 2 || isempty(indexS));
-            
-            % 一维下标向量
-            indexA = sub2ind([obj.gSize obj.gSize],indexS(1,:),indexS(:,2));
-            
+            narginchk(2,3)
+            if(nargin == 2)
+                indexA = index0;
+                % 坐标下标向量
+                indexS = zeros(2,length(index0));
+                [indexS(1,:),indexS(2,:)] = ind2sub([obj.gSize obj.gSize],index0);
+            elseif(nargin == 3)
+                indexS = cat(1,index0,index1);
+                % 一维下标向量
+                indexA = sub2ind([obj.gSize obj.gSize],indexS(1,:),indexS(2,:));
+            end
+
             for ii = 1:size(indexS,2)
                 if(obj.resultM(indexA(ii)) == obj.uTypeUnN)
                     % 设置叉属性
-                    obj.resultM(indexA(ii)) = obj.uTypeCross;
+                    obj.resultM(indexA(ii)) = obj.uTypeStar;
                     
                     % 清空Cell
                     obj.indexCell{obj.lTypeRow,indexS(1,ii)} = [];
@@ -101,7 +114,8 @@ classdef StarBattle
                     obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))} = [];
                     
                     % 周围清空为Cross
-                    obj.setCross();
+                    [indexASurd,~] = obj.surdUnit(indexS(:,ii),'S');
+                    obj.setCross(indexASurd);
                     
                 elseif(obj.resultM(indexA(ii)) == obj.uTypeCross)
                     error('Error:检测到叉位置为星。');
@@ -110,7 +124,7 @@ classdef StarBattle
         end
         
         function [indexA, indexS, mask] = surdUnit(obj, index0, indexType)
-            %SURDUNIT 返回四周与行列单元下标与掩模
+            %SURDUNIT 返回四周与行列单元下标与掩模(不含自己)
             %   输入参数:   中心单元下标: 'A'-单下标; 'S'-坐标下标
             assert((strcmpi(indexType, 'A') && isscalar(index0)) || ...
                 (strcmpi(indexType, 'S') && length(index0) == 2));
@@ -129,6 +143,7 @@ classdef StarBattle
                 mT(indexS0(1) + 1, :) = true;
                 mT(:, indexS0(2) + 1) = true;
                 mT(indexS0(1) + 1 + (-1:1), indexS0(2) + 1 + (-1:1)) = true;
+                mT(indexS0(1) + 1, indexS0(2) + 1) = false;
                 % 取中间部分
                 mask = mT(2:end-1,2:end-1) == true;
                 indexA = find(mask);
@@ -149,9 +164,9 @@ classdef StarBattle
                     b4s(:,2) = false;
                 end
                 % 行列直接写入
-                indexS = zeros(2, 2 * obj.gSize - 1);
-                indexS(1,:) = [repmat(indexS0(1),[1 obj.gSize]) 1:(indexS0(1)-1) (indexS0(1)+1):obj.gSize];
-                indexS(2,:) = [1:obj.gSize repmat(indexS0(1),[1 obj.gSize-1])];
+                indexS = zeros(2, 2 * obj.gSize - 2);
+                indexS(1,:) = [repmat(indexS0(1),[1 obj.gSize-1]) 1:(indexS0(1)-1) (indexS0(1)+1):obj.gSize];
+                indexS(2,:) = [1:(indexS0(2)-1) (indexS0(2)+1):obj.gSize repmat(indexS0(1),[1 obj.gSize-1])];
                 % 顶角的单元
                 b4I = [-1 1 -1 1;-1 -1 1 1];
                 indexS = cat(2, indexS, indexS0 + b4I(:,b4s));
@@ -159,6 +174,32 @@ classdef StarBattle
             end
         end
         
+        function Genesis(obj)
+            %GENESIS 求解主工程
+            
+            % 主循环
+            while(1)
+                % 对每一个块进行屏蔽点寻找
+                for ii = 1:obj.gSize
+                    obj.shadeSeek(obj.lTypeBlock, ii);
+                end
+                for ii = 1:obj.gSize
+                    % 对每一个行进行屏蔽点寻找
+                    obj.shadeSeek(obj.lTypeBlock, ii);
+                end
+                for ii = 1:obj.gSize
+                    % 对每一个列进行屏蔽点寻找
+                    obj.shadeSeek(obj.lTypeColumn, ii);
+                end
+                
+                % 寻找每一块/列/行中残余为1的单元
+                id2 = cellfun(@length, obj.indexCell) == 1;
+                indexAStar = cell2mat(obj.indexCell(id2));
+                obj.setStar();
+                
+                
+            end
+        end
         
     end
 end
