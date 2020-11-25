@@ -14,11 +14,11 @@ function [gameSize,tokenMatrix] = sTTokenResolve(inputStr)
 %   An example:
 %   inputStr = '1,2,2,2,3,1,4,2,2,3,1,4,4,4,3,1,1,1,4,5,1,1,1,5,5';
 %   tokenMatrix = [
-%       1 1 1 1 1
-%       2 4 4 1 1
-%       2 2 4 1 1
-%       2 2 4 4 5
-%       3 3 3 5 5
+%       1 2 2 2 3;
+%       1 4 2 2 3;
+%       1 4 4 4 3;
+%       1 1 1 4 5;
+%       1 1 1 5 5;
 %       ];
 
 %%
@@ -30,14 +30,11 @@ gameSize = sqrt(length(strRevise));
 
 % 确定矩阵大小为整数
 if(mod(gameSize,1))
-    error('Error:长度错误')
+    error('Error:Token总大小(%d)错误，无法转换为方阵', gameSize);
 end
 
 % token矩阵
-tokenMatrix = reshape(cellfun(@str2double,strRevise),[gameSize gameSize]);
-
-% 显示信息
-fprintf('\n\t读取成功。 \n\t矩阵大小: %d \n',gameSize);
+tokenMatrix = reshape(cellfun(@str2double,strRevise),[gameSize gameSize])';
 
 end
 
