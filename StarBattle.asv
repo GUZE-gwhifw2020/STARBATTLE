@@ -16,8 +16,8 @@ classdef StarBattle
         uTypeCross  = -1;       % 单元状态 - 叉叉
         
         lTypeColumn = 1;        % 标签 - 列
-        lTypeRow    = 2;    	% 标签 - 行
-        lTypeBlock  = 3;     	% 标签 - 块
+        lTypeRow = 2;           % 标签 - 行
+        lTypeBlock = 3;         % 标签 - 块
         
     end
     
@@ -191,9 +191,7 @@ classdef StarBattle
             %GENESIS 求解主工程
             
             % 主循环
-            iter = 1;
-            while(iter < 10)
-                iter = iter + 1;
+            while(1)
                 % 对每一个块进行屏蔽点寻找
                 for ii = 1:obj.gSize
                     obj.crossSeek(obj.lTypeBlock, ii);
