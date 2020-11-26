@@ -31,12 +31,12 @@ classdef StarBattle
     end
     
     methods
-        function obj = StarBattle(strToken)
+        function obj = StarBattle(strTokenArg)
             %STARBATTLE 构造此类的实例
             %   输入参数：TOKEN字符串
             
             % 题面大小与题面矩阵
-            [obj.gSize,obj.tokenMatrix] = sTTokenResolve(strToken);
+            [obj.gSize,obj.tokenMatrix] = sTTokenResolve(strTokenArg);
             
             % 生成标签矩阵
             obj.indexCell = cell(3,obj.gSize);
@@ -83,7 +83,7 @@ classdef StarBattle
                         obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))} == indexA(ii)) = [];
                     
                 elseif(obj.resultM(indexA(ii)) == obj.uTypeStar)
-                    error('Error:检测到星位置为叉。');
+                    error('Error:检测到星位置写入叉。');
                 end
             end
         end
@@ -105,19 +105,22 @@ classdef StarBattle
             
             for ii = 1:size(indexS,2)
                 if(obj.resultM(indexA(ii)) == obj.uTypeUnN)
-                    % 设置叉属性
+                    % 设置星属性
                     obj.resultM(indexA(ii)) = obj.uTypeStar;
+                    
+                    % 周围与块清空为Cross
+                    [indexASurd,~] = obj.surdUnit(indexS(:,ii),'S');
+                    indexBlockTemp = obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))};
+                    indexBlockTemp(indexBlockTemp == indexA(ii)) = [];
+                    obj = obj.setCross([indexASurd;indexBlockTemp]);
                     
                     % 清空Cell
                     obj.indexCell{obj.lTypeRow,indexS(1,ii)} = [];
                     obj.indexCell{obj.lTypeColumn,indexS(2,ii)} = [];
                     obj.indexCell{obj.lTypeBlock,obj.tokenMatrix(indexA(ii))} = [];
                     
-                    % 周围清空为Cross
-                    [indexASurd,~] = obj.surdUnit(indexS(:,ii),'S');
-                    obj = obj.setCross(indexASurd);
                 elseif(obj.resultM(indexA(ii)) == obj.uTypeCross)
-                    error('Error:检测到叉位置为星。');
+                    error('Error:检测到叉位置写入星。');
                 end
             end
         end
@@ -165,25 +168,47 @@ classdef StarBattle
                 % 行列直接写入
                 indexS = zeros(2, 2 * obj.gSize - 2);
                 indexS(1,:) = [repmat(indexS0(1),[1 obj.gSize-1]) 1:(indexS0(1)-1) (indexS0(1)+1):obj.gSize];
-                indexS(2,:) = [1:(indexS0(2)-1) (indexS0(2)+1):obj.gSize repmat(indexS0(1),[1 obj.gSize-1])];
+                indexS(2,:) = [1:(indexS0(2)-1) (indexS0(2)+1):obj.gSize repmat(indexS0(2),[1 obj.gSize-1])];
                 % 顶角的单元
                 b4I = [-1 1 -1 1;-1 -1 1 1];
                 indexS = cat(2, indexS, indexS0 + b4I(:,b4s));
-                indexA = sub2ind([obj.gSize obj.gSize], indexS(1,:), indexS(2,:));
+                indexA = sub2ind([obj.gSize obj.gSize], indexS(1,:)', indexS(2,:)');
+                
             end
         end
         
-        function obj = starSeek(obj)
+        function indexAStar = starSeek(obj)
             %STARSEEK 寻找星位置
             % 寻找每一块/列/行中残余为1的单元
             id2 = cellfun(@length, obj.indexCell) == 1;
             indexAStar = cell2mat(obj.indexCell(id2));
-            obj = obj.setStar(indexAStar);
+            
         end
         
-        function obj = crossSeek(obj,lType,ii)
+        function indexACross = crossSeek(obj,lType,ii)
             %CROSSSEEK 寻找叉位置
-            % 
+            % 掩模初始化
+            mask = true(obj.gSize);
+            switch(lType)
+                case obj.lTypeBlock
+                    mask = obj.tokenMatrix ~= ii;
+                case obj.lTypeRow
+                    mask(ii,:) = false;
+                case obj.lTypeColumn
+                    mask(:,ii) = false;
+            end
+            
+            % 对内部位置未知方格进行周围掩模求解
+            indexAUnN = find(~mask & obj.resultM == obj.uTypeUnN);
+            if(isempty(indexAUnN))
+                indexACross = [];
+            else
+                for ii = 1:length(indexAUnN)
+                    [~,~,maskTemp] = obj.surdUnit(indexAUnN(ii),'A');
+                    mask = mask & maskTemp;
+                end
+                indexACross = find(mask);
+            end
         end
         
         
@@ -192,26 +217,30 @@ classdef StarBattle
             
             % 主循环
             iter = 1;
-            while(iter < 10)
+            while(iter < 10 && any(obj.resultM == obj.uTypeUnN,'all'))
+                
+                
                 iter = iter + 1;
-                % 对每一个块进行屏蔽点寻找
+                
                 for ii = 1:obj.gSize
-                    obj.crossSeek(obj.lTypeBlock, ii);
+                    % 对每一个块进行屏蔽点寻找
+                    obj = obj.setCross(obj.crossSeek(obj.lTypeBlock, ii));
                 end
                 for ii = 1:obj.gSize
                     % 对每一个行进行屏蔽点寻找
-                    obj.crossSeek(obj.lTypeRow, ii);
+                    obj = obj.setCross(obj.crossSeek(obj.lTypeRow, ii));
+                    
                 end
                 for ii = 1:obj.gSize
                     % 对每一个列进行屏蔽点寻找
-                    obj.crossSeek(obj.lTypeColumn, ii);
+                    obj = obj.setCross(obj.crossSeek(obj.lTypeColumn, ii));
                 end
                 
-                % 寻找星位置
-                obj = obj.starSeek();
+                % 寻找并写入星位置
+                indexAStar = obj.starSeek();
+                obj = obj.setStar(indexAStar);
                 
-                
-                
+                iter
             end
         end
         

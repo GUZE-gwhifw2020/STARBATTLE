@@ -6,12 +6,14 @@
 % FUNC:
 %   StarBattle类实例。
 % ===================================== %
-clc
+% clc
 
-strToken = '1,1,1,1,1,1,1,2,1,1,3,3,2,4,4,3,5,5,4,4,5,5,5,5,5';
+strTokenCase = '1,2,2,3,3,1,1,2,2,3,1,1,2,4,4,5,5,5,5,4,5,5,5,5,4';
 
-X = StarBattle(strToken);
+tic
+X = StarBattle(strTokenCase);
+
+%%
+X = X.Genesis();
 X.resultM
-X = X.setCross(5,5);
-X = X.setStar([1 1 1 1],[1 1 1 1]);
-X.resultM
+toc
